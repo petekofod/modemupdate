@@ -7,13 +7,24 @@ get_ssh_connect_status() {
 
 sshpass -V > log.txt
 
-echo "**********************************************************" > report.txt
-echo "***************** UPDATING MODEMS REPORT *****************" >> report.txt
-echo "**********************************************************" >> report.txt
+update_modems=true
+if [[ $@ == *"-no-update"* ]]; then
+    update_modems=false
+fi
+
+t_now=`date +%Y%m%d.%H:%M:%S`
+report_file_name=report_${t_now}.txt
+
+echo "**********************************************************" > ${report_file_name}
+if ${update_modems}
+then
+    echo "***************** UPDATING MODEMS REPORT *****************" >> ${report_file_name}
+else
+    echo "***************** CHECKING SW VERSIONS REPORT ************" >> ${report_file_name}
+fi
+echo "**********************************************************" >> ${report_file_name}
 
 while read line; do
-
-update_failed=true
 
 modem=( $line )
 
@@ -66,71 +77,99 @@ echo
 get_ssh_connect_status
 if [[ $? -ne 0 ]]
 then
-        echo "${MODEM_SSH_ADDR}/${MODEM_IP} MODEM UPDATE FAILED. SSH connection broken."
-        echo "${MODEM_SSH_ADDR}/${MODEM_IP} MODEM UPDATE FAILED. SSH connection broken." >> report.txt
+        msg="${MODEM_SSH_ADDR}/${MODEM_IP} : SSH connection broken."
+        echo ${msg}
+        echo ${msg} >> ${report_file_name}
 	continue
 fi
 
-echo "Copy firmware ${FILE_NAME} and updater for modem ${MODEM_URL}"
-echo
-</dev/null sshpass -p ${MODEM_SSH_PASS} ssh -o StrictHostKeyChecking=no -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} "ls /tmp/${FILE_NAME}" 2>/dev/null
-if [[ $? -ne 0 ]]
-then
-    </dev/null sshpass -p ${MODEM_SSH_PASS} scp -o StrictHostKeyChecking=no -P ${MODEM_SSH_PORT} ${FILE_NAME} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
-fi
-</dev/null sshpass -p ${MODEM_SSH_PASS} scp -o StrictHostKeyChecking=no -P ${MODEM_SSH_PORT} update.sh ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
 </dev/null sshpass -p ${MODEM_SSH_PASS} scp -o StrictHostKeyChecking=no -P ${MODEM_SSH_PORT} check_update_status.sh ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
-echo "Copied"
 
-echo
-echo "Run update"
-</dev/null sshpass -p ${MODEM_SSH_PASS} ssh -o StrictHostKeyChecking=no -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
-	"/tmp/update.sh ${MODEM_IP} ${MODEM_URL} ${MODEM_LOGIN} ${MODEM_PASSWORD} /tmp/${FILE_NAME} > /tmp/log.${MODEM_IP}.txt"
+update_failed=true
 
-if [[ $? -ne 0 ]]
+if ${update_modems}
 then
-        echo
-        echo
-        echo "${MODEM_SSH_ADDR}/${MODEM_IP} MODEM UPDATE FAILED"
-        echo "${MODEM_SSH_ADDR}/${MODEM_IP} MODEM UPDATE FAILED" >> report.txt
-        echo
-	continue
-fi
-
-sleep 240
-
-i=0
-while [ $i -le 100 ]
-do
-    get_ssh_connect_status
-    if [[ $? -eq 0 ]]
+    echo "Copy firmware ${FILE_NAME} and updater for modem ${MODEM_URL}"
+    echo
+    </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -o StrictHostKeyChecking=no -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} "ls /tmp/${FILE_NAME}" 2>/dev/null
+    if [[ $? -ne 0 ]]
     then
-	echo
-	echo "Check update status"
-	</dev/null sshpass -p ${MODEM_SSH_PASS} ssh -o StrictHostKeyChecking=no -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
-        	"/tmp/check_update_status.sh ${MODEM_IP} ${MODEM_URL} ${VERSION} >> /tmp/log.${MODEM_IP}.txt"
+        </dev/null sshpass -p ${MODEM_SSH_PASS} scp -o StrictHostKeyChecking=no -P ${MODEM_SSH_PORT} ${FILE_NAME} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
+    fi
+    </dev/null sshpass -p ${MODEM_SSH_PASS} scp -o StrictHostKeyChecking=no -P ${MODEM_SSH_PORT} update.sh ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
+    echo "Copied"
 
-	if [[ $? -eq 0 ]]
-	then
-		update_failed=false
-		echo
-		echo
-		echo "${MODEM_SSH_ADDR}/${MODEM_IP} MODEM SUCCESSFULLY UPDATED"
-                echo "${MODEM_SSH_ADDR}/${MODEM_IP} MODEM SUCCESSFULLY UPDATED" >> report.txt
-		echo
-	fi
-        break
+    echo
+    echo "Run update"
+    </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -o StrictHostKeyChecking=no -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
+        "/tmp/update.sh ${MODEM_IP} ${MODEM_URL} ${MODEM_LOGIN} ${MODEM_PASSWORD} /tmp/${FILE_NAME} > /tmp/log.${MODEM_IP}.txt"
+
+    if [[ $? -ne 0 ]]
+    then
+            echo
+            echo
+            msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM UPDATE FAILED"
+            echo ${msg}
+            echo ${msg} >> ${report_file_name}
+            echo
+        continue
     fi
 
-    (( i++ ))
-done
+    sleep 300
 
-if ${update_failed}
-then
-	echo
-	echo
-	echo "${MODEM_SSH_ADDR}/${MODEM_IP} MODEM UPDATE FAILED"
-        echo "${MODEM_SSH_ADDR}/${MODEM_IP} MODEM UPDATE FAILED" >> report.txt
-	echo
+    i=0
+    while [ $i -le 100 ]
+    do
+        get_ssh_connect_status
+        if [[ $? -eq 0 ]]
+        then
+          echo
+          echo "Check update status"
+          </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -o StrictHostKeyChecking=no -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
+                  "/tmp/check_update_status.sh ${MODEM_IP} ${MODEM_URL} ${VERSION} >> /tmp/log.${MODEM_IP}.txt"
+
+          if [[ $? -eq 0 ]]
+          then
+            update_failed=false
+            echo
+            echo
+            msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM SUCCESSFULLY UPDATED"
+            echo ${msg}
+            echo ${msg} >> ${report_file_name}
+            echo
+          fi
+          break
+        fi
+
+        (( i++ ))
+    done
+
+    if ${update_failed}
+    then
+        echo
+        echo
+        msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM UPDATE FAILED"
+        echo ${msg}
+        echo ${msg} >> ${report_file_name}
+        echo
+    fi
+else
+    echo
+    echo "Check version"
+    </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -o StrictHostKeyChecking=no -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
+      "/tmp/check_update_status.sh ${MODEM_IP} ${MODEM_URL} ${VERSION} >> /tmp/log.${MODEM_IP}.txt"
+
+    if [[ $? -eq 0 ]]
+    then
+        msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM SUCCESSFULLY UPDATED"
+    else
+        msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM UPDATE FAILED : SW VERSION DOES NOT MATCH "${VERSION}
+    fi
+
+    echo
+    echo
+    echo ${msg}
+    echo ${msg} >> ${report_file_name}
+    echo
 fi
 done <list.txt
