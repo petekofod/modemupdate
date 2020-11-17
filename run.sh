@@ -1,7 +1,7 @@
 #!/bin/bash
 
 get_ssh_connect_status() {
-  </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -vvv -o StrictHostKeyChecking=no -p ${MODEM_SSH_PORT}  -o ConnectTimeout=3 -o ConnectionAttempts=1 ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} "echo" 2>> log.txt
+  </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -p ${MODEM_SSH_PORT}  -o ConnectTimeout=3 -o ConnectionAttempts=1 ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} "echo" 2>> log.txt
   return $?
 }
 
@@ -83,7 +83,7 @@ then
 	continue
 fi
 
-</dev/null sshpass -p ${MODEM_SSH_PASS} scp -o StrictHostKeyChecking=no -P ${MODEM_SSH_PORT} check_update_status.sh ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
+</dev/null sshpass -p ${MODEM_SSH_PASS} scp -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} check_update_status.sh ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
 
 update_failed=true
 
@@ -91,17 +91,17 @@ if ${update_modems}
 then
     echo "Copy firmware ${FILE_NAME} and updater for modem ${MODEM_URL}"
     echo
-    </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -o StrictHostKeyChecking=no -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} "ls /tmp/${FILE_NAME}" 2>/dev/null
+    </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} "ls /tmp/${FILE_NAME}" 2>/dev/null
     if [[ $? -ne 0 ]]
     then
-        </dev/null sshpass -p ${MODEM_SSH_PASS} scp -o StrictHostKeyChecking=no -P ${MODEM_SSH_PORT} ${FILE_NAME} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
+        </dev/null sshpass -p ${MODEM_SSH_PASS} scp -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} ${FILE_NAME} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
     fi
-    </dev/null sshpass -p ${MODEM_SSH_PASS} scp -o StrictHostKeyChecking=no -P ${MODEM_SSH_PORT} update.sh ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
+    </dev/null sshpass -p ${MODEM_SSH_PASS} scp -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} update.sh ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
     echo "Copied"
 
     echo
     echo "Run update"
-    </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -o StrictHostKeyChecking=no -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
+    </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
         "/tmp/update.sh ${MODEM_IP} ${MODEM_URL} ${MODEM_LOGIN} ${MODEM_PASSWORD} /tmp/${FILE_NAME} > /tmp/log.${MODEM_IP}.txt"
 
     if [[ $? -ne 0 ]]
@@ -125,7 +125,7 @@ then
         then
           echo
           echo "Check update status"
-          </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -o StrictHostKeyChecking=no -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
+          </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
                   "/tmp/check_update_status.sh ${MODEM_IP} ${MODEM_URL} ${VERSION} >> /tmp/log.${MODEM_IP}.txt"
 
           if [[ $? -eq 0 ]]
@@ -156,14 +156,14 @@ then
 else
     echo
     echo "Check version"
-    </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -o StrictHostKeyChecking=no -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
+    </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
       "/tmp/check_update_status.sh ${MODEM_IP} ${MODEM_URL} ${VERSION} >> /tmp/log.${MODEM_IP}.txt"
 
     if [[ $? -eq 0 ]]
     then
         msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM SUCCESSFULLY UPDATED"
     else
-        msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM UPDATE FAILED : SW VERSION DOES NOT MATCH "${VERSION}
+        msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM UPDATE FAILED : SW VERSION DOES NOT MATCH \""${VERSION}"\""
     fi
 
     echo
@@ -173,3 +173,4 @@ else
     echo
 fi
 done <list.txt
+
