@@ -14,6 +14,7 @@ fi
 
 t_now=`date +%Y%m%d.%H:%M:%S`
 report_file_name=report_${t_now}.txt
+report_not_updated=modems_not_updated_${t_now}.txt
 
 echo "**********************************************************" > ${report_file_name}
 if ${update_modems}
@@ -163,7 +164,10 @@ else
     then
         msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM SUCCESSFULLY UPDATED"
     else
-        msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM UPDATE FAILED : SW VERSION DOES NOT MATCH \""${VERSION}"\""
+        </dev/null sshpass -p ${MODEM_SSH_PASS} scp -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:~/ver.${MODEM_IP}.txt .
+        MODEM_VERSION=$(cat ver.${MODEM_IP}.txt)
+        msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM UPDATE FAILED : SW VERSION \"${MODEM_VERSION}\" DOES NOT MATCH \""${VERSION}"\""
+        echo "${MODEM_SSH_ADDR}/${MODEM_IP} : ${MODEM_VERSION}" >> ${report_not_updated}
     fi
 
     echo

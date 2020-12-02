@@ -8,7 +8,8 @@ echo ${MODEM_IP}
 echo ${MODEM_URL}
 echo ${VERSION}
 
-curl --connect-timeout 3 -k -s ${MODEM_URL} | grep -q $VERSION
+MODEM_VERSION=$(curl -k ${MODEM_URL} | sed 's/.*Version //; s/ | Copyright.*//')
+echo ${MODEM_VERSION} | grep -q $VERSION
 
 if [[ $? -eq 0 ]]
 then
@@ -27,4 +28,5 @@ echo "UPDATE ERROR"
 echo "" >> log.${MODEM_IP}.txt
 echo "*******************************************************************************" >> log.${MODEM_IP}.txt
 echo "UPDATE ERROR" >> log.${MODEM_IP}.txt
+echo ${MODEM_VERSION} >> ver.${MODEM_IP}.txt
 exit 5
