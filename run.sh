@@ -164,8 +164,10 @@ else
     then
         msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM SUCCESSFULLY UPDATED"
     else
-        </dev/null sshpass -p ${MODEM_SSH_PASS} scp -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:~/ver.${MODEM_IP}.txt .
-        MODEM_VERSION=$(cat ver.${MODEM_IP}.txt)
+        </dev/null sshpass -p ${MODEM_SSH_PASS} scp -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:~/ver.${MODEM_IP}.txt ver.${MODEM_SSH_ADDR}_${MODEM_IP}.txt
+        </dev/null sshpass -p ${MODEM_SSH_PASS} scp -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:~/lp.${MODEM_IP}.txt lp.${MODEM_SSH_ADDR}_${MODEM_IP}.txt
+        MODEM_VERSION=$(cat ver.${MODEM_SSH_ADDR}_${MODEM_IP}.txt)
+        [[ -z "${MODEM_VERSION}" ]] && MODEM_VERSION="NOT FOUND"
         msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM UPDATE FAILED : SW VERSION \"${MODEM_VERSION}\" DOES NOT MATCH \""${VERSION}"\""
         echo "${MODEM_SSH_ADDR}/${MODEM_IP} : ${MODEM_VERSION}" >> ${report_not_updated}
     fi
