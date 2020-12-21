@@ -7,6 +7,8 @@ get_ssh_connect_status() {
   return $?
 }
 
+sshpass -V > log.txt
+
 update_modems=true
 if [[ $@ == *"-no-update"* ]]; then
     update_modems=false
@@ -15,6 +17,7 @@ fi
 t_now=`date +%Y%m%d.%H:%M:%S`
 report_file_name=report_${t_now}.txt
 report_not_updated=modems_not_updated_${t_now}.txt
+short_report_file_name=short_report_${t_now}.txt
 
 echo "**********************************************************" > ${report_file_name}
 if ${update_modems}
@@ -177,6 +180,7 @@ else
     if [[ $? -eq 0 ]]
     then
         msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM SUCCESSFULLY UPDATED"
+	short_msg="${MODEM_SSH_ADDR}/${MODEM_IP} : ${VERSION}"
     else
         </dev/null scp -q -o StrictHostKeyChecking=no -i ${SSH_KEY} ${MPLS_INTERFACE_SCP} -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:~/ver.${MODEM_IP}.txt ver.${MODEM_SSH_ADDR}_${MODEM_IP}.txt
         </dev/null scp -q -o StrictHostKeyChecking=no -i ${SSH_KEY} ${MPLS_INTERFACE_SCP} -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:~/lp.${MODEM_IP}.txt lp.${MODEM_SSH_ADDR}_${MODEM_IP}.txt
@@ -184,13 +188,14 @@ else
         [[ -z "${MODEM_VERSION}" ]] && MODEM_VERSION="NOT FOUND"
         msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM UPDATE FAILED : SW VERSION \"${MODEM_VERSION}\" DOES NOT MATCH \""${VERSION}"\""
         echo "${MODEM_SSH_ADDR}/${MODEM_IP} : ${MODEM_VERSION}" >> ${report_not_updated}
+	short_msg="${MODEM_SSH_ADDR}/${MODEM_IP} : ${MODEM_VERSION}"
     fi
 
     echo
     echo
     echo ${msg}
     echo ${msg} >> ${report_file_name}
+    echo ${short_msg} >> ${short_report_file_name}
     echo
 fi
 done <list.txt
-
