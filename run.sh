@@ -1,11 +1,11 @@
 #!/bin/bash
+SSH_KEY=/home/railwaynet/.ssh/id_rsa_rwn
+
 
 get_ssh_connect_status() {
-  </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -p ${MODEM_SSH_PORT}  -o ConnectTimeout=3 -o ConnectionAttempts=1 ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} "echo" 2>> log.txt
+  </dev/null ssh -q -i ${SSH_KEY}  ${MPLS_INTERFACE_SSH} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p ${MODEM_SSH_PORT}  -o ConnectTimeout=3 -o ConnectionAttempts=1 ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} "echo" 2>> log.txt
   return $?
 }
-
-sshpass -V > log.txt
 
 update_modems=true
 if [[ $@ == *"-no-update"* ]]; then
@@ -58,6 +58,18 @@ FILE_NAME=${FILE_NAME#\"}
 
 VERSION=${modem[9]%\"}
 VERSION=${VERSION#\"}
+
+MPLS_INTERFACE_SSH=""
+MPLS_INTERFACE_SCP=""
+MPLS_INTERFACE="Verizon"
+
+if [[ "${MODEM_SSH_ADDR}" == *".149."* ]]; then
+MPLS_INTERFACE_SSH=" -b 10.102.10.37 "
+MPLS_INTERFACE_SCP=" -o BindAddress=10.102.10.37 "
+MPLS_INTERFACE="ATT"
+fi
+
+
 echo
 echo "***********************************************************************************************************"
 echo
@@ -73,6 +85,8 @@ echo MODEM_PASSWORD=${MODEM_PASSWORD}
 echo FILE_NAME=${FILE_NAME}
 echo VERSION=${VERSION}
 echo
+echo SSH_INTERFACE=${MPLS_INTERFACE_SSH}
+echo SCP_INTERFACE=${MPLS_INTERFACE_SCP}
 
 #Try to connect to internal host
 get_ssh_connect_status
@@ -84,7 +98,7 @@ then
 	continue
 fi
 
-</dev/null sshpass -p ${MODEM_SSH_PASS} scp -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} check_update_status.sh ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
+</dev/null  scp -q -o StrictHostKeyChecking=no -i ${SSH_KEY} ${MPLS_INTERFACE_SCP} -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} check_update_status.sh ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
 
 update_failed=true
 
@@ -92,17 +106,17 @@ if ${update_modems}
 then
     echo "Copy firmware ${FILE_NAME} and updater for modem ${MODEM_URL}"
     echo
-    </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} "ls /tmp/${FILE_NAME}" 2>/dev/null
+    </dev/null ssh -q -o StrictHostKeyChecking=no -o -i ${SSH_KEY} ${MPLS_INTERFACE_SSH} -o UserKnownHostsFile=/dev/null -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} "ls /tmp/${FILE_NAME}" 2>/dev/null
     if [[ $? -ne 0 ]]
     then
-        </dev/null sshpass -p ${MODEM_SSH_PASS} scp -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} ${FILE_NAME} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
+        </dev/null scp -q -o StrictHostKeyChecking=no -i ${SSH_KEY} ${MPLS_INTERFACE_SCP} -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} ${FILE_NAME} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
     fi
-    </dev/null sshpass -p ${MODEM_SSH_PASS} scp -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} update.sh ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
+    </dev/null  scp -q -o StrictHostKeyChecking=no -i ${SSH_KEY} ${MPLS_INTERFACE_SCP}  -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} update.sh ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:/tmp/
     echo "Copied"
 
     echo
     echo "Run update"
-    </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
+    </dev/null ssh -q -o StrictHostKeyChecking=no -i ${SSH_KEY} ${MPLS_INTERFACE_SSH} -o UserKnownHostsFile=/dev/null -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
         "/tmp/update.sh ${MODEM_IP} ${MODEM_URL} ${MODEM_LOGIN} ${MODEM_PASSWORD} /tmp/${FILE_NAME} > /tmp/log.${MODEM_IP}.txt"
 
     if [[ $? -ne 0 ]]
@@ -126,7 +140,7 @@ then
         then
           echo
           echo "Check update status"
-          </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
+          </dev/null ssh -q -o StrictHostKeyChecking=no -i ${SSH_KEY} ${MPLS_INTERFACE_SSH} -o UserKnownHostsFile=/dev/null -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
                   "/tmp/check_update_status.sh ${MODEM_IP} ${MODEM_URL} ${VERSION} >> /tmp/log.${MODEM_IP}.txt"
 
           if [[ $? -eq 0 ]]
@@ -157,15 +171,15 @@ then
 else
     echo
     echo "Check version"
-    </dev/null sshpass -p ${MODEM_SSH_PASS} ssh -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
+    </dev/null ssh -q -o StrictHostKeyChecking=no -i ${SSH_KEY} ${MPLS_INTERFACE_SSH} -o UserKnownHostsFile=/dev/null -p ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR} \
       "/tmp/check_update_status.sh ${MODEM_IP} ${MODEM_URL} ${VERSION} >> /tmp/log.${MODEM_IP}.txt"
 
     if [[ $? -eq 0 ]]
     then
         msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM SUCCESSFULLY UPDATED"
     else
-        </dev/null sshpass -p ${MODEM_SSH_PASS} scp -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:~/ver.${MODEM_IP}.txt ver.${MODEM_SSH_ADDR}_${MODEM_IP}.txt
-        </dev/null sshpass -p ${MODEM_SSH_PASS} scp -q -o StrictHostKeyChecking=no -o PasswordAuthentication=yes -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:~/lp.${MODEM_IP}.txt lp.${MODEM_SSH_ADDR}_${MODEM_IP}.txt
+        </dev/null scp -q -o StrictHostKeyChecking=no -i ${SSH_KEY} ${MPLS_INTERFACE_SCP} -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:~/ver.${MODEM_IP}.txt ver.${MODEM_SSH_ADDR}_${MODEM_IP}.txt
+        </dev/null scp -q -o StrictHostKeyChecking=no -i ${SSH_KEY} ${MPLS_INTERFACE_SCP} -o UserKnownHostsFile=/dev/null -P ${MODEM_SSH_PORT} ${MODEM_SSH_USER}@${MODEM_SSH_ADDR}:~/lp.${MODEM_IP}.txt lp.${MODEM_SSH_ADDR}_${MODEM_IP}.txt
         MODEM_VERSION=$(cat ver.${MODEM_SSH_ADDR}_${MODEM_IP}.txt)
         [[ -z "${MODEM_VERSION}" ]] && MODEM_VERSION="NOT FOUND"
         msg="${MODEM_SSH_ADDR}/${MODEM_IP} : MODEM UPDATE FAILED : SW VERSION \"${MODEM_VERSION}\" DOES NOT MATCH \""${VERSION}"\""
