@@ -1,2 +1,1 @@
-"166.141.80.159" "22222" "root" "modemfix01" "192.168.13.31" "http://192.168.13.31:9191" "user" "PsKsPDQF*xynVv9HzM" "ALEOS_Software_4.5.1.009.bin" "4.5.1"
-"166.141.80.159" "22222" "root" "modemfix01" "192.168.13.31" "http://192.168.13.31:9191" "user" "PsKsPDQF*xynVv9HzM" "ALEOS_Software_4.9.5.010.bin" "4.9.5"
+"166.141.80.159" "22222" "root" "modemfix01" "user" "PsKsPDQF*xynVv9HzM" EOL
