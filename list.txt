@@ -1,1 +1,1 @@
-"166.141.80.159" "22222" "root" "modemfix01" "user" "PsKsPDQF*xynVv9HzM" EOL
+LOCONAME "166.141.80.158" "166.141.80.159" "22222" "root" "modemfix01" "user" "PsKsPDQF*xynVv9HzM" EOL
