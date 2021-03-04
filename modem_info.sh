@@ -26,13 +26,19 @@ echo
 
 curl -s -c coo -k --data "<request xmlns=\"urn:ace-c manager\"><connect><login>${MODEM_LOGIN}</login><password>${MODEM_PASSWORD}</password></connect></request>" ${MODEM_URL}/xml/Connect.xml > login_out.txt
 
-for i in 7 4 11220 11227 9 8
+req=""
+for fw_id in 7 4 11220 11227 9 8
 do
-	val=$(curl -s -k -b coo -X POST -H "Content-Type: text/plain" -q --data ${i}\
-   	${MODEM_URL}/cgi-bin/Embedded_Ace_Get_Task.cgi)
-	val=${val#"${i}="}
-	val=${val%"!"}
-echo ${lbl[i]}: $val
+        req=${req}","${fw_id}
+done
+echo
+fw_lst=$(curl -s -k -b coo -X POST -H "Content-Type: text/plain" -q --data ${req}\
+        ${MODEM_URL}/cgi-bin/Embedded_Ace_Get_Task.cgi)
+
+IFS='!' read -ra fwlst <<< "$fw_lst"
+for s in "${fwlst[@]}"; do
+        fw_id=${s%=*}
+        [[ ! -z ${lbl[fw_id]} ]] &&     echo ${lbl[fw_id]}: ${s#*=}
 done
 echo
 
